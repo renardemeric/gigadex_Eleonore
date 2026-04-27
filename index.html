@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/items/poke-ball.png">
+<link rel="apple-touch-icon" sizes="152x152" href="https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/items/poke-ball.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/items/poke-ball.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GigaDex">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0d0d1a">
+<title>GigaDex — Emeric</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#0d0d1a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{display:flex;flex-direction:column}
+.hero{background:#1a0000;padding:12px 14px 10px;border-bottom:2px solid #CC0000;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.hero img{width:38px;height:38px;object-fit:contain;image-rendering:pixelated}
+.hero-text{flex:1}
+.hero-title{font-size:17px;font-weight:800;color:#FFCB05}
+.hero-sub{font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px}
+.sync-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.sync-dot{width:10px;height:10px;border-radius:50%;transition:background .3s}
+.sync-dot.ok{background:#27AE60}
+.sync-dot.syncing{background:#FFCB05;animation:pulse 1s infinite}
+.sync-dot.err{background:#CC0000}
+.sync-dot.none{background:#444}
+.sync-label{font-size:8px;color:#555;white-space:nowrap}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.prog-bar-wrap{background:#111122;padding:8px 14px;border-bottom:1px solid #222;flex-shrink:0}
+.prog-nums{display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:4px}
+.prog-track{height:7px;background:#1a1a30;border-radius:7px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#FFCB05,#27AE60);border-radius:7px;transition:width .4s}
+.prog-pct{font-size:10px;color:#555;text-align:right;margin-top:2px}
+.controls{background:#0d0d1a;padding:8px 10px;border-bottom:1px solid #1a1a2e;display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-shrink:0}
+.controls input[type=search]{background:#12122a;border:1px solid #2a2a45;border-radius:8px;padding:6px 10px;color:#f0f0f0;font-size:12px;flex:1;min-width:100px;outline:none}
+.controls input[type=search]:focus{border-color:#FFCB05}
+.controls select{background:#12122a;border:1px solid #2a2a45;border-radius:8px;padding:6px 8px;color:#f0f0f0;font-size:11px;outline:none;cursor:pointer}
+.fbtn{background:#12122a;border:1px solid #2a2a45;border-radius:7px;padding:5px 10px;color:#888;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.fbtn.fa{background:#FFCB05;color:#000;border-color:#FFCB05}
+.fbtn.fo{background:#1a3d2a;color:#27AE60;border-color:#27AE60}
+.fbtn.fm{background:#3d1a1a;color:#ff6666;border-color:#880000}
+.cnt{font-size:10px;color:#555;margin-left:auto}
+.grid-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:7px;padding:10px;background:#070710}
+.card{background:#1a1a2e;border-radius:10px;padding:7px 4px 6px;text-align:center;cursor:pointer;border:2px solid transparent;transition:transform .12s;position:relative;user-select:none;-webkit-user-select:none}
+.card:active{transform:scale(0.92)}
+.card.owned{border-color:rgba(39,174,96,0.6);background:#0e1e14}
+.card.missing{border-color:rgba(180,0,0,0.4);background:#1e0e0e}
+.card.missing .iw{opacity:.4;filter:grayscale(80%)}
+.dot{position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%}
+.dot.owned{background:#27AE60}
+.dot.missing{background:#CC0000}
+.cnum{font-size:8px;color:#555;font-weight:700;margin-bottom:2px}
+.iw{width:68px;height:68px;margin:0 auto;display:flex;align-items:center;justify-content:center}
+.iw img{width:68px;height:68px;object-fit:contain;image-rendering:pixelated}
+.cname{font-size:9px;font-weight:700;margin-top:3px;line-height:1.25;word-break:break-word}
+.cname.owned{color:#7ae8a0}
+.cname.missing{color:#ff8888}
+.empty{grid-column:1/-1;text-align:center;padding:40px;color:#444;font-size:13px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid #FFCB05;border-radius:20px;padding:8px 18px;font-size:12px;font-weight:700;color:#fff;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;z-index:100}
+.toast.show{opacity:1}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.overlay.hidden{display:none}
+.modal{background:#1a1a2e;border:1px solid #2a2a45;border-radius:14px;padding:22px;width:100%;max-width:320px}
+.modal h2{font-size:14px;font-weight:800;color:#FFCB05;margin-bottom:8px}
+.modal p{font-size:11px;color:#888;margin-bottom:14px;line-height:1.6}
+.modal input{width:100%;background:#0d0d1a;border:1px solid #2a2a45;border-radius:8px;padding:10px 12px;color:#f0f0f0;font-size:12px;font-family:monospace;outline:none;margin-bottom:8px}
+.modal input:focus{border-color:#FFCB05}
+.modal-hint{font-size:10px;color:#555;margin-bottom:14px;line-height:1.5}
+.modal-btns{display:flex;gap:8px}
+.modal-btns button{flex:1;padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none}
+.btn-ok{background:#FFCB05;color:#000}
+.btn-cancel{background:#2a2a45;color:#888}
+.modal-link{color:#4a9eff;font-size:10px;display:block;margin-top:12px;text-align:center;text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <h2>🔗 Connexion GitHub</h2>
+    <p>Entre ton Personal Access Token GitHub pour synchroniser ta collection dans <code>data.json</code>.</p>
+    <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+    <div class="modal-hint">
+      1. Va sur github.com → Settings<br>
+      2. Developer settings → Tokens (classic)<br>
+      3. Generate new token → coche <strong>repo</strong><br>
+      4. Colle le token ici
+    </div>
+    <div class="modal-btns">
+      <button class="btn-ok" id="btn-connect">Connecter</button>
+      <button class="btn-cancel" id="btn-skip">Plus tard</button>
+    </div>
+    <a class="modal-link" href="https://github.com/settings/tokens/new?scopes=repo&description=GigaDex" target="_blank">Générer un token →</a>
+  </div>
+</div>
+
+<div class="hero">
+  <img src="https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/items/poke-ball.png" alt="pokeball">
+  <div class="hero-text">
+    <div class="hero-title">GigaDex</div>
+    <div class="hero-sub">Collection Pokémon — Éléonore</div>
+  </div>
+  <div class="sync-wrap" onclick="showModal()">
+    <div class="sync-dot none" id="sync-dot"></div>
+    <div class="sync-label" id="sync-label">GitHub</div>
+  </div>
+</div>
+
+<div class="prog-bar-wrap">
+  <div class="prog-nums">
+    <span style="color:#27AE60" id="pown">—</span>
+    <span style="color:#ff6666" id="pmiss">—</span>
+    <span style="color:#555">1025 total</span>
+  </div>
+  <div class="prog-track"><div class="prog-fill" id="pfill" style="width:0%"></div></div>
+  <div class="prog-pct" id="ppct">0%</div>
+</div>
+
+<div class="controls">
+  <input type="search" id="search" placeholder="Rechercher…" oninput="applyF()" autocomplete="off">
+  <select id="gen" onchange="applyF()">
+    <option value="0">Toutes</option>
+    <option value="1">Kanto</option>
+    <option value="2">Johto</option>
+    <option value="3">Hoenn</option>
+    <option value="4">Sinnoh</option>
+    <option value="5">Unova</option>
+    <option value="6">Kalos</option>
+    <option value="7">Alola</option>
+    <option value="8">Galar</option>
+    <option value="9">Paldea</option>
+  </select>
+  <button class="fbtn fa" id="ba" onclick="setF('all')">Tous</button>
+  <button class="fbtn" id="bo" onclick="setF('owned')">✅</button>
+  <button class="fbtn" id="bm" onclick="setF('missing')">❌</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+
+<div class="grid-wrap"><div class="grid" id="grid"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const USER='renardemeric',REPO='gigadex_Eleonore',BRANCH='main',DATA_FILE='data.json';
+const API_DATA=`https://api.github.com/repos/${USER}/${REPO}/contents/${DATA_FILE}`;
+const GEN=[[1,151],[152,251],[252,386],[387,493],[494,649],[650,721],[722,809],[810,905],[906,1025]];
+const NAMES={29:'Nidoran♀',32:'Nidoran♂',83:"Farfetch'd",122:'Mr. Mime',250:'Ho-Oh',439:'Mime Jr.',772:'Type: Null',785:'Tapu Koko',786:'Tapu Lele',787:'Tapu Bulu',788:'Tapu Fini',865:"Sirfetch'd",866:'Mr. Rime',984:'Great Tusk',985:'Scream Tail',986:'Brute Bonnet',987:'Flutter Mane',988:'Slither Wing',989:'Sandy Shocks',990:'Iron Treads',991:'Iron Bundle',992:'Iron Hands',993:'Iron Jugulis',994:'Iron Moth',995:'Iron Thorns',1001:'Wo-Chien',1002:'Chien-Pao',1003:'Ting-Lu',1004:'Chi-Yu',1005:'Roaring Moon',1006:'Iron Valiant',1009:'Walking Wake',1010:'Iron Leaves',1020:'Gouging Fire',1021:'Raging Bolt',1022:'Iron Boulder',1023:'Iron Crown'};
+const RAW=`1,bulbasaur,1|2,ivysaur,1|3,venusaur,1|4,charmander,1|5,charmeleon,1|6,charizard,1|7,squirtle,1|8,wartortle,0|9,blastoise,0|10,caterpie,1|11,metapod,1|12,butterfree,1|13,weedle,1|14,kakuna,0|15,beedrill,0|16,pidgey,1|17,pidgeotto,1|18,pidgeot,0|19,rattata,1|20,raticate,1|21,spearow,1|22,fearow,1|23,ekans,1|24,arbok,1|25,pikachu,1|26,raichu,0|27,sandshrew,1|28,sandslash,1|29,nidoran-f,1|30,nidorina,1|31,nidoqueen,1|32,nidoran-m,1|33,nidorino,1|34,nidoking,1|35,clefairy,1|36,clefable,1|37,vulpix,1|38,ninetales,1|39,jigglypuff,1|40,wigglytuff,1|41,zubat,1|42,golbat,1|43,oddish,1|44,gloom,1|45,vileplume,1|46,paras,1|47,parasect,1|48,venonat,1|49,venomoth,0|50,diglett,1|51,dugtrio,0|52,meowth,1|53,persian,1|54,psyduck,1|55,golduck,1|56,mankey,1|57,primeape,1|58,growlithe,1|59,arcanine,1|60,poliwag,1|61,poliwhirl,0|62,poliwrath,1|63,abra,1|64,kadabra,1|65,alakazam,1|66,machop,1|67,machoke,0|68,machamp,0|69,bellsprout,1|70,weepinbell,1|71,victreebel,0|72,tentacool,1|73,tentacruel,0|74,geodude,0|75,graveler,1|76,golem,1|77,ponyta,1|78,rapidash,1|79,slowpoke,1|80,slowbro,0|81,magnemite,1|82,magneton,1|83,farfetchd,1|84,doduo,1|85,dodrio,1|86,seel,1|87,dewgong,1|88,grimer,1|89,muk,0|90,shellder,1|91,cloyster,0|92,gastly,1|93,haunter,1|94,gengar,1|95,onix,1|96,drowzee,1|97,hypno,1|98,krabby,1|99,kingler,0|100,voltorb,1|101,electrode,1|102,exeggcute,1|103,exeggutor,1|104,cubone,1|105,marowak,1|106,hitmonlee,0|107,hitmonchan,1|108,lickitung,1|109,koffing,1|110,weezing,1|111,rhyhorn,1|112,rhydon,1|113,chansey,1|114,tangela,1|115,kangaskhan,1|116,horsea,1|117,seadra,1|118,goldeen,1|119,seaking,1|120,staryu,1|121,starmie,1|122,mr-mime,0|123,scyther,0|124,jynx,1|125,electabuzz,1|126,magmar,1|127,pinsir,1|128,tauros,1|129,magikarp,1|130,gyarados,1|131,lapras,1|132,ditto,0|133,eevee,1|134,vaporeon,1|135,jolteon,1|136,flareon,1|137,porygon,1|138,omanyte,0|139,omastar,0|140,kabuto,0|141,kabutops,0|142,aerodactyl,0|143,snorlax,1|144,articuno,1|145,zapdos,1|146,moltres,1|147,dratini,1|148,dragonair,1|149,dragonite,1|150,mewtwo,1|151,mew,0|152,chikorita,0|153,bayleef,1|154,meganium,1|155,cyndaquil,1|156,quilava,1|157,typhlosion,1|158,totodile,0|159,croconaw,1|160,feraligatr,1|161,sentret,1|162,furret,1|163,hoothoot,1|164,noctowl,0|165,ledyba,0|166,ledian,1|167,spinarak,1|168,ariados,1|169,crobat,1|170,chinchou,1|171,lanturn,0|172,pichu,0|173,cleffa,1|174,igglybuff,0|175,togepi,0|176,togetic,1|177,natu,0|178,xatu,1|179,mareep,1|180,flaaffy,1|181,ampharos,1|182,bellossom,0|183,marill,0|184,azumarill,1|185,sudowoodo,1|186,politoed,0|187,hoppip,0|188,skiploom,0|189,jumpluff,0|190,aipom,1|191,sunkern,0|192,sunflora,1|193,yanma,1|194,wooper,1|195,quagsire,0|196,espeon,0|197,umbreon,1|198,murkrow,1|199,slowking,1|200,misdreavus,1|201,unown,0|202,wobbuffet,1|203,girafarig,1|204,pineco,0|205,forretress,1|206,dunsparce,1|207,gligar,1|208,steelix,1|209,snubbull,0|210,granbull,0|211,qwilfish,1|212,scizor,0|213,shuckle,1|214,heracross,1|215,sneasel,1|216,teddiursa,0|217,ursaring,0|218,slugma,1|219,magcargo,1|220,swinub,1|221,piloswine,1|222,corsola,0|223,remoraid,1|224,octillery,1|225,delibird,1|226,mantine,1|227,skarmory,1|228,houndour,1|229,houndoom,1|230,kingdra,1|231,phanpy,0|232,donphan,0|233,porygon2,1|234,stantler,0|235,smeargle,1|236,tyrogue,0|237,hitmontop,0|238,smoochum,0|239,elekid,0|240,magby,0|241,miltank,1|242,blissey,0|243,raikou,1|244,entei,1|245,suicune,1|246,larvitar,1|247,pupitar,1|248,tyranitar,1|249,lugia,0|250,ho-oh,0|251,celebi,1|252,treecko,0|253,grovyle,0|254,sceptile,0|255,torchic,1|256,combusken,1|257,blaziken,1|258,mudkip,0|259,marshtomp,0|260,swampert,0|261,poochyena,1|262,mightyena,1|263,zigzagoon,1|264,linoone,1|265,wurmple,1|266,silcoon,0|267,beautifly,1|268,cascoon,0|269,dustox,0|270,lotad,0|271,lombre,1|272,ludicolo,1|273,seedot,1|274,nuzleaf,1|275,shiftry,0|276,taillow,0|277,swellow,0|278,wingull,1|279,pelipper,1|280,ralts,1|281,kirlia,1|282,gardevoir,0|283,surskit,1|284,masquerain,0|285,shroomish,0|286,breloom,1|287,slakoth,1|288,vigoroth,1|289,slaking,0|290,nincada,1|291,ninjask,1|292,shedinja,1|293,whismur,0|294,loudred,0|295,exploud,0|296,makuhita,1|297,hariyama,1|298,azurill,0|299,nosepass,1|300,skitty,1|301,delcatty,0|302,sableye,0|303,mawile,1|304,aron,1|305,lairon,0|306,aggron,0|307,meditite,1|308,medicham,1|309,electrike,1|310,manectric,1|311,plusle,0|312,minun,1|313,volbeat,1|314,illumise,0|315,roselia,1|316,gulpin,0|317,swalot,0|318,carvanha,1|319,sharpedo,1|320,wailmer,1|321,wailord,1|322,numel,1|323,camerupt,0|324,torkoal,1|325,spoink,1|326,grumpig,1|327,spinda,1|328,trapinch,1|329,vibrava,0|330,flygon,0|331,cacnea,1|332,cacturne,0|333,swablu,1|334,altaria,1|335,zangoose,1|336,seviper,1|337,lunatone,1|338,solrock,1|339,barboach,1|340,whiscash,0|341,corphish,1|342,crawdaunt,1|343,baltoy,1|344,claydol,1|345,lileep,0|346,cradily,0|347,anorith,0|348,armaldo,0|349,feebas,1|350,milotic,1|351,castform,0|352,kecleon,1|353,shuppet,0|354,banette,1|355,duskull,1|356,dusclops,1|357,tropius,1|358,chimecho,1|359,absol,0|360,wynaut,0|361,snorunt,1|362,glalie,1|363,spheal,1|364,sealeo,0|365,walrein,0|366,clamperl,0|367,huntail,1|368,gorebyss,0|369,relicanth,0|370,luvdisc,1|371,bagon,1|372,shelgon,1|373,salamence,1|374,beldum,1|375,metang,1|376,metagross,1|377,regirock,1|378,regice,1|379,registeel,0|380,latias,0|381,latios,1|382,kyogre,1|383,groudon,1|384,rayquaza,0|385,jirachi,1|386,deoxys,1|387,turtwig,0|388,grotle,0|389,torterra,0|390,chimchar,0|391,monferno,1|392,infernape,1|393,piplup,1|394,prinplup,1|395,empoleon,0|396,starly,0|397,staravia,0|398,staraptor,0|399,bidoof,0|400,bibarel,0|401,kricketot,0|402,kricketune,0|403,shinx,1|404,luxio,1|405,luxray,0|406,budew,1|407,roserade,1|408,cranidos,0|409,rampardos,0|410,shieldon,0|411,bastiodon,0|412,burmy,0|413,wormadam,0|414,mothim,0|415,combee,1|416,vespiquen,0|417,pachirisu,1|418,buizel,1|419,floatzel,0|420,cherubi,0|421,cherrim,0|422,shellos,1|423,gastrodon,1|424,ambipom,0|425,drifloon,1|426,drifblim,0|427,buneary,1|428,lopunny,1|429,mismagius,1|430,honchkrow,0|431,glameow,0|432,purugly,1|433,chingling,1|434,stunky,0|435,skuntank,0|436,bronzor,1|437,bronzong,1|438,bonsly,1|439,mime-jr,0|440,happiny,0|441,chatot,1|442,spiritomb,1|443,gible,1|444,gabite,1|445,garchomp,1|446,munchlax,0|447,riolu,1|448,lucario,0|449,hippopotas,1|450,hippowdon,1|451,skorupi,1|452,drapion,0|453,croagunk,0|454,toxicroak,1|455,carnivine,1|456,finneon,1|457,lumineon,0|458,mantyke,1|459,snover,1|460,abomasnow,1|461,weavile,0|462,magnezone,1|463,lickilicky,1|464,rhyperior,0|465,tangrowth,1|466,electivire,1|467,magmortar,0|468,togekiss,1|469,yanmega,0|470,leafeon,1|471,glaceon,1|472,gliscor,1|473,mamoswine,0|474,porygon-z,1|475,gallade,0|476,probopass,1|477,dusknoir,0|478,froslass,1|479,rotom,1|480,uxie,0|481,mesprit,0|482,azelf,1|483,dialga,1|484,palkia,1|485,heatran,1|486,regigigas,1|487,giratina,0|488,cresselia,1|489,phione,1|490,manaphy,0|491,darkrai,1|492,shaymin,1|493,arceus,0|494,victini,1|495,snivy,0|496,servine,0|497,serperior,1|498,tepig,1|499,pignite,1|500,emboar,0|501,oshawott,0|502,dewott,1|503,samurott,1|504,patrat,0|505,watchog,1|506,lillipup,1|507,herdier,1|508,stoutland,1|509,purrloin,1|510,liepard,1|511,pansage,1|512,simisage,1|513,pansear,1|514,simisear,1|515,panpour,1|516,simipour,1|517,munna,0|518,musharna,0|519,pidove,0|520,tranquill,1|521,unfezant,0|522,blitzle,1|523,zebstrika,1|524,roggenrola,1|525,boldore,0|526,gigalith,0|527,woobat,1|528,swoobat,1|529,drilbur,1|530,excadrill,1|531,audino,0|532,timburr,1|533,gurdurr,1|534,conkeldurr,0|535,tympole,1|536,palpitoad,0|537,seismitoad,0|538,throh,0|539,sawk,1|540,sewaddle,0|541,swadloon,1|542,leavanny,1|543,venipede,0|544,whirlipede,0|545,scolipede,0|546,cottonee,1|547,whimsicott,1|548,petilil,1|549,lilligant,1|550,basculin,1|551,sandile,0|552,krokorok,1|553,krookodile,1|554,darumaka,1|555,darmanitan,1|556,maractus,1|557,dwebble,1|558,crustle,0|559,scraggy,1|560,scrafty,1|561,sigilyph,1|562,yamask,1|563,cofagrigus,0|564,tirtouga,0|565,carracosta,0|566,archen,0|567,archeops,1|568,trubbish,1|569,garbodor,1|570,zorua,1|571,zoroark,1|572,minccino,1|573,cinccino,1|574,gothita,1|575,gothorita,1|576,gothitelle,0|577,solosis,0|578,duosion,0|579,reuniclus,1|580,ducklett,1|581,swanna,1|582,vanillite,1|583,vanillish,1|584,vanilluxe,1|585,deerling,0|586,sawsbuck,0|587,emolga,1|588,karrablast,1|589,escavalier,0|590,foongus,1|591,amoonguss,1|592,frillish,1|593,jellicent,0|594,alomomola,0|595,joltik,1|596,galvantula,1|597,ferroseed,1|598,ferrothorn,0|599,klink,1|600,klang,1|601,klinklang,1|602,tynamo,1|603,eelektrik,1|604,eelektross,0|605,elgyem,0|606,beheeyem,0|607,litwick,1|608,lampent,1|609,chandelure,1|610,axew,1|611,fraxure,0|612,haxorus,0|613,cubchoo,1|614,beartic,1|615,cryogonal,1|616,shelmet,1|617,accelgor,1|618,stunfisk,1|619,mienfoo,1|620,mienshao,1|621,druddigon,1|622,golett,0|623,golurk,0|624,pawniard,1|625,bisharp,0|626,bouffalant,1|627,rufflet,1|628,braviary,0|629,vullaby,1|630,mandibuzz,1|631,heatmor,1|632,durant,0|633,deino,1|634,zweilous,1|635,hydreigon,1|636,larvesta,1|637,volcarona,1|638,cobalion,0|639,terrakion,1|640,virizion,1|641,tornadus,1|642,thundurus,1|643,reshiram,1|644,zekrom,0|645,landorus,1|646,kyurem,1|647,keldeo,0|648,meloetta,1|649,genesect,0|650,chespin,0|651,quilladin,0|652,chesnaught,0|653,fennekin,0|654,braixen,0|655,delphox,0|656,froakie,1|657,frogadier,1|658,greninja,0|659,bunnelby,1|660,diggersby,1|661,fletchling,1|662,fletchinder,1|663,talonflame,1|664,scatterbug,1|665,spewpa,1|666,vivillon,1|667,litleo,1|668,pyroar,1|669,flabebe,1|670,floette,0|671,florges,0|672,skiddo,0|673,gogoat,0|674,pancham,1|675,pangoro,1|676,furfrou,1|677,espurr,1|678,meowstic,1|679,honedge,0|680,doublade,1|681,aegislash,1|682,spritzee,1|683,aromatisse,1|684,swirlix,1|685,slurpuff,0|686,inkay,1|687,malamar,0|688,binacle,0|689,barbaracle,1|690,skrelp,1|691,dragalge,0|692,clauncher,0|693,clawitzer,1|694,helioptile,1|695,heliolisk,1|696,tyrunt,1|697,tyrantrum,0|698,amaura,0|699,aurorus,0|700,sylveon,0|701,hawlucha,1|702,dedenne,1|703,carbink,1|704,goomy,1|705,sliggoo,1|706,goodra,0|707,klefki,1|708,phantump,1|709,trevenant,1|710,pumpkaboo,1|711,gourgeist,1|712,bergmite,0|713,avalugg,0|714,noibat,1|715,noivern,1|716,xerneas,1|717,yveltal,1|718,zygarde,1|719,diancie,0|720,hoopa,1|721,volcanion,1|722,rowlet,1|723,dartrix,1|724,decidueye,1|725,litten,0|726,torracat,0|727,incineroar,0|728,popplio,0|729,brionne,0|730,primarina,0|731,pikipek,0|732,trumbeak,1|733,toucannon,0|734,yungoos,1|735,gumshoos,1|736,grubbin,0|737,charjabug,0|738,vikavolt,0|739,crabrawler,1|740,crabominable,1|741,oricorio,1|742,cutiefly,1|743,ribombee,1|744,rockruff,1|745,lycanroc,1|746,wishiwashi,1|747,mareanie,0|748,toxapex,0|749,mudbray,1|750,mudsdale,0|751,dewpider,0|752,araquanid,0|753,fomantis,0|754,lurantis,1|755,morelull,1|756,shiinotic,1|757,salandit,1|758,salazzle,0|759,stufful,1|760,bewear,1|761,bounsweet,1|762,steenee,1|763,tsareena,1|764,comfey,1|765,oranguru,0|766,passimian,0|767,wimpod,0|768,golisopod,0|769,sandygast,1|770,palossand,0|771,pyukumuku,0|772,type-null,0|773,silvally,0|774,minior,0|775,komala,1|776,turtonator,1|777,togedemaru,1|778,mimikyu,1|779,bruxish,0|780,drampa,1|781,dhelmise,1|782,jangmo-o,0|783,hakamo-o,0|784,kommo-o,0|785,tapu-koko,1|786,tapu-lele,0|787,tapu-bulu,0|788,tapu-fini,0|789,cosmog,0|790,cosmoem,0|791,solgaleo,0|792,lunala,0|793,nihilego,0|794,buzzwole,0|795,pheromosa,0|796,xurkitree,0|797,celesteela,0|798,kartana,0|799,guzzlord,0|800,necrozma,0|801,magearna,0|802,marshadow,1|803,poipole,0|804,naganadel,0|805,stakataka,0|806,blacephalon,0|807,zeraora,1|808,meltan,0|809,melmetal,0|810,grookey,1|811,thwackey,1|812,rillaboom,1|813,scorbunny,1|814,raboot,1|815,cinderace,1|816,sobble,1|817,drizzile,0|818,inteleon,1|819,skwovet,1|820,greedent,1|821,rookidee,0|822,corvisquire,1|823,corviknight,1|824,blipbug,1|825,dottler,1|826,orbeetle,1|827,nickit,1|828,thievul,1|829,gossifleur,1|830,eldegoss,0|831,wooloo,1|832,dubwool,1|833,chewtle,0|834,drednaw,1|835,yamper,1|836,boltund,0|837,rolycoly,0|838,carkol,0|839,coalossal,0|840,applin,1|841,flapple,1|842,appletun,1|843,silicobra,1|844,sandaconda,1|845,cramorant,1|846,arrokuda,1|847,barraskewda,1|848,toxel,1|849,toxtricity,1|850,sizzlipede,1|851,centiskorch,1|852,clobbopus,1|853,grapploct,0|854,sinistea,0|855,polteageist,0|856,hatenna,1|857,hattrem,0|858,hatterene,0|859,impidimp,1|860,morgrem,1|861,grimmsnarl,1|862,obstagoon,0|863,perrserker,0|864,cursola,0|865,sirfetchd,0|866,mr-rime,0|867,runerigus,0|868,milcery,1|869,alcremie,1|870,falinks,1|871,pincurchin,0|872,snom,1|873,frosmoth,1|874,stonjourner,1|875,eiscue,1|876,indeedee,1|877,morpeko,1|878,cufant,1|879,copperajah,1|880,dracozolt,0|881,arctozolt,0|882,dracovish,0|883,arctovish,0|884,duraludon,1|885,dreepy,1|886,drakloak,0|887,dragapult,0|888,zacian,1|889,zamazenta,1|890,eternatus,1|891,kubfu,0|892,urshifu,0|893,zarude,0|894,regieleki,0|895,regidrago,0|896,glastrier,0|897,spectrier,0|898,calyrex,1|899,wyrdeer,0|900,kleavor,0|901,ursaluna,1|902,basculegion,0|903,sneasler,0|904,overqwil,0|905,enamorus,1|906,sprigatito,1|907,floragato,0|908,meowscarada,1|909,fuecoco,1|910,crocalor,1|911,skeledirge,0|912,quaxly,1|913,quaxwell,1|914,quaquaval,0|915,lechonk,1|916,oinkologne,1|917,tarountula,1|918,spidops,1|919,nymble,1|920,lokix,1|921,pawmi,1|922,pawmo,1|923,pawmot,1|924,tandemaus,1|925,maushold,1|926,fidough,1|927,dachsbun,0|928,smoliv,1|929,dolliv,1|930,arboliva,1|931,squawkabilly,1|932,nacli,1|933,naclstack,1|934,garganacl,1|935,charcadet,1|936,armarouge,1|937,ceruledge,1|938,tadbulb,1|939,bellibolt,1|940,wattrel,1|941,kilowattrel,1|942,maschiff,1|943,mabosstiff,0|944,shroodle,1|945,grafaiai,0|946,bramblin,1|947,brambleghast,1|948,toedscool,1|949,toedscruel,1|950,klawf,1|951,capsakid,1|952,scovillain,1|953,rellor,1|954,rabsca,0|955,flittle,1|956,espathra,1|957,tinkatink,1|958,tinkatuff,1|959,tinkaton,0|960,wiglett,1|961,wugtrio,1|962,bombirdier,1|963,finizen,1|964,palafin,0|965,varoom,1|966,revavroom,1|967,cyclizar,1|968,orthworm,0|969,glimmet,1|970,glimmora,1|971,greavard,0|972,houndstone,1|973,flamigo,1|974,cetoddle,1|975,cetitan,1|976,veluza,1|977,dondozo,0|978,tatsugiri,1|979,annihilape,0|980,clodsire,1|981,farigiraf,1|982,dudunsparce,0|983,kingambit,1|984,great-tusk,1|985,scream-tail,1|986,brute-bonnet,1|987,flutter-mane,1|988,slither-wing,0|989,sandy-shocks,1|990,iron-treads,0|991,iron-bundle,1|992,iron-hands,0|993,iron-jugulis,0|994,iron-moth,0|995,iron-thorns,0|996,frigibax,0|997,arctibax,0|998,baxcalibur,0|999,gimmighoul,1|1000,gholdengo,1|1001,wo-chien,0|1002,chien-pao,1|1003,ting-lu,1|1004,chi-yu,1|1005,roaring-moon,1|1006,iron-valiant,1|1007,koraidon,1|1008,miraidon,1|1009,walking-wake,0|1010,iron-leaves,1|1011,dipplin,1|1012,poltchageist,1|1013,sinistcha,0|1014,okidogi,1|1015,munkidori,1|1016,fezandipiti,1|1017,ogerpon,1|1018,archaludon,1|1019,hydrapple,0|1020,gouging-fire,0|1021,raging-bolt,0|1022,iron-boulder,0|1023,iron-crown,1|1024,terapagos,1|1025,pecharunt,0`;
+
+const pokemon=RAW.split('|').map(line=>{
+  const[id,slug,def]=line.split(',');
+  const num=parseInt(id);
+  const name=NAMES[num]||slug.split('-').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+  return{id:num,slug,name,def:def==='1'};
+});
+
+const SK='gdx_el1',TK_KEY='gdx_tok_el';
+let owned={},dataSha='',syncTimer=null;
+
+function loadLocal(){
+  try{const s=localStorage.getItem(SK);if(s){owned=JSON.parse(s);return true;}}catch(e){}
+  return false;
+}
+function saveLocal(){try{localStorage.setItem(SK,JSON.stringify(owned));}catch(e){}}
+function getToken(){
+  const m=document.cookie.match(/(?:^|; )gdx_tok=([^;]*)/);
+  return m?decodeURIComponent(m[1]):(localStorage.getItem(TK_KEY)||'');
+}
+function setTokenStore(t){
+  // Cookie valide 1 an + localStorage en double sécurité
+  const exp=new Date(Date.now()+365*24*60*60*1000).toUTCString();
+  document.cookie='gdx_tok='+encodeURIComponent(t)+';expires='+exp+';path=/;SameSite=Strict';
+  try{localStorage.setItem(TK_KEY,t);}catch(e){}
+}
+
+function setSyncUI(state,label){
+  document.getElementById('sync-dot').className='sync-dot '+state;
+  document.getElementById('sync-label').textContent=label||{ok:'Sync ✓',syncing:'Sync…',err:'Erreur',none:'GitHub'}[state];
+}
+
+// ── GitHub: load data.json ───────────────────────────────────────────────────
+async function loadFromGitHub(){
+  const tok=getToken();
+  if(!tok){setSyncUI('none');return;}
+  setSyncUI('syncing','Chargement…');
+  try{
+    const r=await fetch(API_DATA+'?t='+Date.now(),{
+      headers:{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json'}
+    });
+    if(r.status===401){setSyncUI('err','Token invalide');return;}
+    if(r.status===404){
+      // data.json doesn't exist yet — create it from local
+      setSyncUI('syncing','Création…');
+      await pushToGitHub(true);
+      return;
+    }
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    dataSha=d.sha;
+    const remote=JSON.parse(atob(d.content.replace(/\n/g,'')));
+    // Merge: remote wins
+    owned=remote;
+    saveLocal();
+    updateStats();applyF();
+    setSyncUI('ok');
+  }catch(e){
+    console.error(e);
+    setSyncUI('err','Erreur réseau');
+  }
+}
+
+// ── GitHub: push data.json ───────────────────────────────────────────────────
+async function pushToGitHub(isCreate=false){
+  const tok=getToken();
+  if(!tok)return;
+  setSyncUI('syncing','Sync…');
+  try{
+    const body={
+      message:'GigaDex update',
+      content:btoa(unescape(encodeURIComponent(JSON.stringify(owned)))),
+      branch:BRANCH
+    };
+    if(dataSha&&!isCreate)body.sha=dataSha;
+
+    const r=await fetch(API_DATA,{
+      method:'PUT',
+      headers:{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(r.status===401){setSyncUI('err','Token invalide');return;}
+    if(r.status===409){
+      // Conflict: fetch fresh sha and retry once
+      await loadFromGitHub();
+      return;
+    }
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    dataSha=d.content.sha;
+    setSyncUI('ok');
+  }catch(e){
+    console.error(e);
+    setSyncUI('err','Erreur sync');
+  }
+}
+
+function scheduleSync(){
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>pushToGitHub(),1500);
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────────
+function showModal(){document.getElementById('overlay').classList.remove('hidden');}
+function closeModal(){document.getElementById('overlay').classList.add('hidden');}
+function saveToken(){
+  const t=document.getElementById('token-input').value.trim();
+  if(!t){toast('Token vide !');return;}
+  setTokenStore(t);
+  closeModal();
+  loadFromGitHub();
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('btn-connect').addEventListener('click',saveToken);
+  document.getElementById('btn-skip').addEventListener('click',closeModal);
+  document.getElementById('token-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter')saveToken();
+  });
+});
+
+// ── Filters ──────────────────────────────────────────────────────────────────
+let af='all';
+function setF(f){
+  af=f;
+  document.getElementById('ba').className='fbtn'+(f==='all'?' fa':'');
+  document.getElementById('bo').className='fbtn'+(f==='owned'?' fo':'');
+  document.getElementById('bm').className='fbtn'+(f==='missing'?' fm':'');
+  applyF();
+}
+function applyF(){
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  const g=parseInt(document.getElementById('gen').value);
+  const[gn,gx]=g>0?GEN[g-1]:[1,1025];
+  const list=pokemon.filter(p=>{
+    if(af==='owned'&&!owned[p.id])return false;
+    if(af==='missing'&&owned[p.id])return false;
+    if(g>0&&(p.id<gn||p.id>gx))return false;
+    if(q&&!p.name.toLowerCase().includes(q)&&!String(p.id).includes(q))return false;
+    return true;
+  });
+  render(list);
+  document.getElementById('cnt').textContent=list.length+' affichés';
+}
+
+// ── Toggle ───────────────────────────────────────────────────────────────────
+function toggle(id){
+  owned[id]=!owned[id];
+  saveLocal();
+  scheduleSync();
+  updateStats();
+  const card=document.querySelector(`.card[data-id="${id}"]`);
+  if(!card)return;
+  const o=owned[id];
+  card.className='card '+(o?'owned':'missing');
+  card.querySelector('.dot').className='dot '+(o?'owned':'missing');
+  card.querySelector('.iw').style.cssText=o?'':'opacity:.4;filter:grayscale(80%)';
+  card.querySelector('.cname').className='cname '+(o?'owned':'missing');
+  if((af==='owned'&&!o)||(af==='missing'&&o)){
+    card.style.transition='opacity .25s';card.style.opacity='0';
+    setTimeout(()=>card.remove(),250);
+  }
+  const name=pokemon.find(p=>p.id===id)?.name||'';
+  toast(owned[id]?'✅ '+name:'❌ '+name);
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+function updateStats(){
+  const own=pokemon.filter(p=>owned[p.id]).length;
+  const miss=pokemon.length-own;
+  const pct=Math.round(own/pokemon.length*100);
+  document.getElementById('pown').textContent=own+' possédés';
+  document.getElementById('pmiss').textContent=miss+' manquants';
+  document.getElementById('pfill').style.width=pct+'%';
+  document.getElementById('ppct').textContent=pct+'% complété';
+}
+
+function imgUrl(id){return`https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`;}
+
+function render(list){
+  const grid=document.getElementById('grid');
+  if(!list.length){grid.innerHTML='<div class="empty">Aucun Pokémon trouvé</div>';return;}
+  grid.innerHTML=list.map(p=>{
+    const o=owned[p.id];
+    return`<div class="card ${o?'owned':'missing'}" data-id="${p.id}" onclick="toggle(${p.id})">
+      <div class="dot ${o?'owned':'missing'}"></div>
+      <div class="cnum">#${String(p.id).padStart(4,'0')}</div>
+      <div class="iw" style="${o?'':'opacity:.4;filter:grayscale(80%)'}">
+        <img src="${imgUrl(p.id)}" alt="${p.name}" loading="lazy" onerror="this.parentNode.innerHTML='<span style=font-size:22px>?</span>'">
+      </div>
+      <div class="cname ${o?'owned':'missing'}">${p.name}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+if(!loadLocal()){
+  pokemon.forEach(p=>{owned[p.id]=p.def;});
+  saveLocal();
+}
+updateStats();applyF();
+
+if(getToken()){
+  loadFromGitHub();
+} else {
+  setSyncUI('none');
+  showModal();
+}
+</script>
+</body>
+</html>
